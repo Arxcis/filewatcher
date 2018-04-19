@@ -1,1 +1,9 @@
 .vs/
+build/
+
+assets/*
+!assets/textures/.gitkeep
+!assets/shaders/.gitkeep
+!assets/materials/.gitkeep
+!assets/models/.gitkeep
+!assets/scenes/.gitkeep
