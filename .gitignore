@@ -1,9 +1,17 @@
 .vs/
 build/
 
-assets/*
-!assets/textures/.gitkeep
-!assets/shaders/.gitkeep
-!assets/materials/.gitkeep
-!assets/models/.gitkeep
-!assets/scenes/.gitkeep
+assets/textures/*
+!assets/textures/.keep
+
+assets/shaders/*
+!assets/shaders/.keep
+
+assets/materials/*
+!assets/materials/.keep
+
+assets/models/*
+!assets/models/.keep
+
+assets/scenes/*
+!assets/scenes/.keep

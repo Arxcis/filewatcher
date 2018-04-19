@@ -45,7 +45,3 @@ configure_directory(${SRCDIR}/assets/textures ${BINDIR}/assets/textures)
 configure_file(${SRCDIR}/watcher.py ${BINDIR}/watcher.py COPYONLY)
 
 
-###############################
-# Microsoft Visual studio 2017
-###############################
-

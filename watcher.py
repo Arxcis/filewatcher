@@ -1,14 +1,18 @@
 import sys
+import glob
 import os
 import time
-import logging
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
-class MyHandler(PatternMatchingEventHandler):
 
-    base = "assets"
 
-    def __init__(self, directory,
+def post(event_type, collection, tag, extension, filepath):
+    print(event_type, collection, tag, extension, filepath)
+    sys.stdout.flush()
+
+class CollectionHandler(PatternMatchingEventHandler):
+
+    def __init__(self, collection,
                        patterns=None, 
                        ignore_patterns=None, 
                        ignore_directories=False, 
@@ -18,22 +22,24 @@ class MyHandler(PatternMatchingEventHandler):
                          ignore_directories, 
                          case_sensitive)
 
-        self.directory = directory
-
+        self.collection = collection
 
     def process(self, event):
         """
         event.event_type 
             'modified' | 'created' | 'moved' | 'deleted'
-        event.is_directory
+        event.is_collection
             True | False
         event.src_path
             path/to/observed/file
         """
-        filename = os.path.basename(event.src_path)
-        tag = filename.split(".")[0]
-        print(self.directory, filename, tag, event.event_type, event.src_path)
-        sys.stdout.flush()
+        fname = os.path.basename(event.src_path)
+        
+        post(event_type = event.event_type,
+             collection = self.collection,
+             tag        = fname.split(".")[0],
+             extension  = fname.split(".")[1],
+             filepath   = event.src_path)
 
     def on_modified(self, event):
         self.process(event)
@@ -41,18 +47,43 @@ class MyHandler(PatternMatchingEventHandler):
     def on_created(self, event):
         self.process(event)
 
+    def on_deleted(self, event):
+        self.process(event)
+
+    def on_moved(self, event):
+        self.process(event)
+
+
+
+def discover_collection_files(collection, extension_match):
+
+    for ext in extension_match:
+        filenames = glob.glob("./assets/"+collection+"/"+ext)
+
+        for fname in filenames:
+
+            fname = os.path.basename(fname)
+
+            post(event_type = "discovered",
+                 collection = collection,
+                 tag        = fname.split(".")[0],
+                 extension  = fname.split(".")[1],
+                 filepath   = "./assets/"+collection+"/"+fname)
+
 
 if __name__ == '__main__':
-   # print("hello world")
-    sys.stdout.flush()
 
     args = sys.argv[1:]
     observer = Observer()
-    observer.schedule(MyHandler("shaders",   ["*.glsl"]), "./assets/shaders/")
-    # observer.schedule(MyHandler("textures",  ["*.jpg"]),  "./assets/textures/")
-    observer.schedule(MyHandler("materials", ["*.yml"]),  "./assets/materials/")
-    observer.schedule(MyHandler("scenes",    ["*.yml"]),  "./assets/scenes/")
-    observer.schedule(MyHandler("models",    ["*.yml"]),  "./assets/models/")
+
+    collections = ["textures", "shaders", "materials", "models", "scenes"]
+    extensions  = [["*.jpg", "*.png", "*.gif"],  ["*.glsl"], ["*.yml"],  ["*.yml"],  ["*.yml"]]
+
+    for c, e in zip(collections, extensions):
+        discover_collection_files(c, e)
+        observer.schedule(CollectionHandler(c,  e),  "./assets/"+c+"/")
+
+
     observer.start()
 
     try:
