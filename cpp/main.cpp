@@ -5,17 +5,15 @@
 #include <vector>
 namespace fs = std::experimental::filesystem;
 
-enum FileState { 
-    DISCOVERED,
-    MODIFIED
-};
 
 struct File {
-    fs::path  path;
-    FileState state;
+    fs::path path;
+    time_t   last_write_time; 
 };
 
-void print_file_info(File& file) {
+std::vector<File> watchedFiles;
+
+void print_verbose(File& file) {
     // Type of file
     if (fs::is_regular_file(file.path)) {
         std::cout << "Found regular file..\n";
@@ -55,21 +53,79 @@ void print_file_info(File& file) {
     std::cout << '\n';
 }
 
-std::vector<fs::path> files;
+void print(File& file) {
+    std::cout << "filename: " << file.path.filename() << '\n'; 
+}
+
 
 void discover_files(std::string folderpath) {
 
     std::cout << "Discovering files in " << folderpath << "...\n";
-    std::string path = folderpath;
-    for (auto & p : fs::directory_iterator(path)) {
 
-        File file{p.path()};
-        print_file_info(file);
+
+    for (auto & p : fs::directory_iterator(folderpath)) {
+
+        // If direcotry entry is another direectory, just continue
+        if (fs::is_directory(p.path())) {
+            continue;
+        }
+
+        // if it is a file but the stem is empty
+        if (p.path().stem().string().empty()) {
+            continue;
+        }
+
+        // if extension is empty
+        if (p.path().extension().string().empty()) {
+            continue;
+        }
+
+
+        auto last_write_time = fs::last_write_time(p.path());
+        auto unix_last_write_time = decltype(last_write_time)::clock::to_time_t(last_write_time);
+
+        auto file = watchedFiles.emplace_back(
+            File { 
+                p.path(),
+                unix_last_write_time,
+            }
+        );
+        print_verbose (file);
+        //print(file);
     }
 }
 
 void get_modified_files(std::string folderpath) {
-    std::cout << "Getting modified files in " << folderpath << "...\n";
+    std::cout << "\n\nGetting modified files in " << folderpath << "...\n";
+    for (const auto & p : fs::directory_iterator(folderpath)) {
+
+        // If direcotry entry is not a regular file
+        if (!fs::is_regular_file(p.path())) {
+            continue;
+        }
+
+        // We have found a file, let's compare it to our watchedFiles
+        for (auto& file: watchedFiles) {
+
+            // Find first file that matches
+            if (fs::canonical(p.path()).string() == fs::canonical(file.path).string()) {
+
+                auto last_write_time = fs::last_write_time(p.path());
+                auto unix_last_write_time = decltype(last_write_time)::clock::to_time_t(last_write_time);
+
+                // Check if file has been modified
+                if (file.last_write_time != unix_last_write_time) {
+
+                    // Cache the update write time
+                    std::cout << p.path() << " was modified....\n";
+                    file.last_write_time = unix_last_write_time;
+                } else {
+              //      std::cout << p.path() << " not modified....\n";
+                }
+                break;
+            }
+        }       
+    }
 }
 
 int main()
@@ -87,7 +143,7 @@ int main()
     char command = 'Q';
 
     do {
-        std::cout << "D : Discovered files\n";
+        std::cout << "\n\nD : Discovered files\n";
         std::cout << "M : Modified   files\n";
 
         std::cin >> inCommand;
@@ -98,6 +154,9 @@ int main()
         switch (toupper(command)) {
 
             case 'D':{
+                // Rediscover files - making sure the cache is clear every time
+                watchedFiles.clear();
+
                 for (const auto& folder : foldersToWatch) {
                     discover_files(folder);
                 }
