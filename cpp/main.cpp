@@ -2,14 +2,37 @@
 #include <iostream>
 #include <filesystem>
 #include <cstdlib>
+#include <vector>
 namespace fs = std::experimental::filesystem;
+
+enum FileState { 
+    DISCOVERED,
+    MODIFIED
+};
+
+struct File {
+    fs::path  path;
+    FileState state;
+};
+
+std::vector<fs::path> files;
 
 void discover_files(std::string folderpath) {
 
     std::cout << "Discovering files in " << folderpath << "...\n";
     std::string path = folderpath;
-    for (auto & p : fs::directory_iterator(path))
-        std::cout << "  " << p << std::endl;
+    for (auto & p : fs::directory_iterator(path)) {
+        std::cout << "  " << p << " - ";
+
+        if (fs::is_regular_file(p)) {
+            std::cout << " Is regular file..";
+        } else if (fs::is_directory(p)) {
+            std::cout << " Is directory..";
+        } else {
+            std::cout << " Is something else";
+        }
+        std::cout << '\n';
+    }
 }
 
 void get_modified_files(std::string folderpath) {
@@ -19,6 +42,7 @@ void get_modified_files(std::string folderpath) {
 int main()
 {
     std::vector<std::string> foldersToWatch = {
+        "./assets",
         "./assets/textures",
         "./assets/materials",
         "./assets/shaders",
