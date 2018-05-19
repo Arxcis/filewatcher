@@ -15,6 +15,45 @@ struct File {
     FileState state;
 };
 
+void print_file_info(File& file) {
+    // Type of file
+    if (fs::is_regular_file(file.path)) {
+        std::cout << "Found regular file..\n";
+    } else if (fs::is_directory(file.path)) {
+        std::cout << "Found directory..\n";
+    } else {
+        std::cout << "Found something else\n";
+    }
+
+    // File path
+    std::cout << " path      : "  << file.path            << '\n'
+              << " absolute  : "  << absolute(file.path)  << '\n'
+              << " canonical : "  << canonical(file.path) << '\n'
+              << " rootdir   : "  << file.path.root_directory() << '\n'
+              << " parentpath: "  << file.path.parent_path() << '\n'
+              << " filename  : "  << file.path.filename() << '\n'
+              << " stem      : "  << file.path.stem() << '\n'
+              << " extension : "  << file.path.extension() << '\n';
+
+    // Last write time
+    auto last_write_time = fs::last_write_time(file.path);
+    auto sys_last_write_time = decltype(last_write_time)::clock::to_time_t(last_write_time);
+    std::cout << " Last write: " << sys_last_write_time << '\n';
+    std::cout << " localtime : " << std::localtime(&sys_last_write_time) << '\n'; 
+    std::cout << " ascprint  : " << std::asctime(std::localtime(&sys_last_write_time)); 
+
+
+    // Size of file
+    try {
+        std::cout << " Filesize  : " << fs::file_size(file.path) << '\n';
+    }
+    catch (fs::filesystem_error& e) {
+        std::cout << " " << e.what() << '\n';
+        std::cout << " Filesize  : You cannot take the file size of a directory...\n";
+    }
+    std::cout << '\n';
+}
+
 std::vector<fs::path> files;
 
 void discover_files(std::string folderpath) {
@@ -22,16 +61,9 @@ void discover_files(std::string folderpath) {
     std::cout << "Discovering files in " << folderpath << "...\n";
     std::string path = folderpath;
     for (auto & p : fs::directory_iterator(path)) {
-        std::cout << "  " << p << " - ";
 
-        if (fs::is_regular_file(p)) {
-            std::cout << " Is regular file..";
-        } else if (fs::is_directory(p)) {
-            std::cout << " Is directory..";
-        } else {
-            std::cout << " Is something else";
-        }
-        std::cout << '\n';
+        File file{p.path()};
+        print_file_info(file);
     }
 }
 
