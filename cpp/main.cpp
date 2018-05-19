@@ -31,9 +31,10 @@ void print_file_info(File& file) {
               << " canonical : "  << canonical(file.path) << '\n'
               << " rootdir   : "  << file.path.root_directory() << '\n'
               << " parentpath: "  << file.path.parent_path() << '\n'
+              << " parentstem: "  << file.path.parent_path().stem() <<'\n'
               << " filename  : "  << file.path.filename() << '\n'
               << " stem      : "  << file.path.stem() << '\n'
-              << " extension : "  << file.path.extension() << '\n';
+              << " extension : "  << file.path.extension() << '\n'; 
 
     // Last write time
     auto last_write_time = fs::last_write_time(file.path);
