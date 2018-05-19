@@ -87,6 +87,9 @@ int main()
     char command = 'Q';
 
     do {
+        std::cout << "D : Discovered files\n";
+        std::cout << "M : Modified   files\n";
+
         std::cin >> inCommand;
         if (inCommand.size() == 0) continue;
         command  = inCommand[0];
