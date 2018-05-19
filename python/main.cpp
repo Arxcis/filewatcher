@@ -1,109 +1,89 @@
 #include <iostream>
-#include <iostream>
 #include <cstdio>
 #include <cstdlib>  
-
-#ifdef WIN32
-const auto& popen = _popen;
-const auto& pclose = _pclose;
-constexpr char PYTHON_COMMAND[] = "C:\\Python36\\python.exe watcher.py";
-#else
-constexpr char PYTHON_COMMAND[] = "./usr/local/bin/python3 watcher.py";
-#endif
-
-#include <thread>
 #include <vector>
 #include <sstream>
 #include <chrono>
+#include <thread>
 #include <set>
-// @doc http://man7.org/linux/man-pages/man3/popen.3.html - 18.04.2018
-// FILE *popen(const char *command, const char *type);
-struct ExecuteResult 
-{
-    std::string msg;
-    int statusode;
-};
+#include <iomanip>
 
 using OverkillTag = std::string;
 
 struct FileTags 
 {
-    std::set<OverkillTag> materials;
-    std::set<OverkillTag> scenes;
+    std::set<OverkillTag> textures;
     std::set<OverkillTag> shaders;
+    std::set<OverkillTag> materials;
     std::set<OverkillTag> models;
+    std::set<OverkillTag> scenes;
 } fileTags;
 
 struct ModifiedTags {
-    std::set<OverkillTag> materials;
-    std::set<OverkillTag> scenes;
+    std::set<OverkillTag> textures;
     std::set<OverkillTag> shaders;
+    std::set<OverkillTag> materials;
     std::set<OverkillTag> models;
+    std::set<OverkillTag> scenes;
 } modifiedTags;
 
 struct PipeResult 
 {
-    std::string directory;
-    std::string filename;
+    std::string event_type;
+    std::string collection;
     std::string tag;
-    std::string modtype;
+    std::string extension;
     std::string filepath;
 };
 
-auto executeRead(std::string command) -> ExecuteResult
+// @doc http://man7.org/linux/man-pages/man3/popen.3.html - 18.04.2018
+// FILE *popen(const char *command, const char *type);
+void listenToWatcher()
 {
     const int DATA_SIZE =  128;
     char data[DATA_SIZE] = "\n";
     int closestatus;
     
-    FILE* pipestream = popen(command.data(), "r");
+#ifdef WIN32
+    const auto& popen = _popen;
+    const auto& pclose = _pclose;
+    FILE* pipestream = popen("C:\\Python36\\python.exe watcher.py", "r");
+#else
+    FILE* pipestream = popen("/usr/local/bin/python3 watcher.py", "r");
+#endif
+
     if(!pipestream){
-        return {"Could not open pipestream.", 1};
+        return;
     }
 
-    while (true) {
-        fgets(data, DATA_SIZE, pipestream);
-        printf("%s", data);
+    while (fgets(data, DATA_SIZE, pipestream) != nullptr) {
 
         PipeResult res;
         std::stringstream ss;
         ss << data;
-        ss >> res.directory >> res.filename >> res.tag >> res.modtype >> res.filepath;
-        std::cout << "{ " << res.directory 
-                  << ", " << res.filename 
-                  << ", " << res.tag 
-                  << ", " << res.modtype 
-                  << ", " << res.filepath << " }\n";
+        ss >> res.event_type >> res.collection >> res.tag >> res.extension >> res.filepath;
+        std::cout << std::left
+                  << "{ " << std::setw(8) << res.event_type 
+                  << ", " << std::setw(8) << res.collection 
+                  << ", " << std::setw(8) << res.tag 
+                  << ", " << std::setw(8) << res.extension 
+                  << ", " << std::setw(8) << res.filepath << " }\n";
+
+
+        // @note turn this on for debugging
+        //  Only necesarry if the pipe break, and the fgets go crazy
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(.1s);
     }
 
     closestatus = pclose(pipestream);
-    if (closestatus != 0) {
-        return {"Could not close pipestream.", 1};
-    }
-
-    return {std::string(data), 0};
+    if (closestatus)
+        printf("FAILED CLOSING the pipe\n");
+    printf("CLOSING the pipe\n");
 };
-
-void logError(const std::string& command, const std::string& text) 
-{
-    printf("-------> ERROR   %s: %s" ,command.data(), text.data());
-    std::cin.get();
-    exit(1);
-}
-
-void logSuccess(const std::string& command, const std::string& text) 
-{
-    printf("-> %s:\n %s\n",command.data(), text.data());    
-}
 
 int main() 
 {
-
-    if (auto [resultstring, err] = executeRead(PYTHON_COMMAND); err) {
-        logError(PYTHON_COMMAND, resultstring);
-    } else {
-        logSuccess(PYTHON_COMMAND, resultstring);
-    }
-    
+    listenToWatcher();
     return 0;
 }

@@ -41,11 +41,3 @@ configure_directory(${SRCDIR}/assets/shaders ${BINDIR}/assets/shaders)
 configure_directory(${SRCDIR}/assets/models ${BINDIR}/assets/models)
 configure_directory(${SRCDIR}/assets/textures ${BINDIR}/assets/textures)
 
-
-configure_file(${SRCDIR}/watcher.py ${BINDIR}/watcher.py COPYONLY)
-
-
-###############################
-# Microsoft Visual studio 2017
-###############################
-
